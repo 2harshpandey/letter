@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>You've Got Mail</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Courier New', monospace;
+            background: linear-gradient(135deg, #2c3e50 0%, #34495e 50%, #2c3e50 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            overflow-x: hidden;
+        }
+
+        .scene {
+            width: 100%;
+            max-width: 600px;
+            position: relative;
+        }
+
+        .envelope-wrapper {
+            perspective: 1500px;
+            cursor: pointer;
+            transition: transform 0.3s ease;
+        }
+
+        .envelope-wrapper:hover {
+            transform: scale(1.02);
+        }
+
+        .envelope-wrapper.opened {
+            cursor: default;
+            pointer-events: none;
+        }
+
+        .envelope {
+            width: 100%;
+            height: 350px;
+            position: relative;
+            transform-style: preserve-3d;
+            transition: transform 1s ease;
+        }
+
+        .envelope-back {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #d4a574 0%, #c89666 100%);
+            border-radius: 5px;
+            box-shadow: 
+                0 20px 60px rgba(0, 0, 0, 0.5),
+                inset 0 1px 0 rgba(255, 255, 255, 0.2);
+        }
+
+        .envelope-back::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 300px solid transparent;
+            border-right: 300px solid transparent;
+            border-top: 175px solid #b88a5c;
+        }
+
+        .envelope-back::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 300px solid transparent;
+            border-right: 300px solid transparent;
+            border-bottom: 175px solid #b88a5c;
+        }
+
+        .envelope-flap {
+            position: absolute;
+            width: 100%;
+            height: 50%;
+            top: 0;
+            left: 0;
+            background: linear-gradient(180deg, #c89666 0%, #d4a574 100%);
+            transform-origin: top center;
+            transition: transform 1.2s ease;
+            border-radius: 5px 5px 0 0;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+            z-index: 10;
+        }
+
+        .envelope-flap::before {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 0;
+            height: 0;
+            border-left: 300px solid transparent;
+            border-right: 300px solid transparent;
+            border-bottom: 175px solid #d4a574;
+        }
+
+        .wax-seal {
+            position: absolute;
+            width: 70px;
+            height: 70px;
+            background: radial-gradient(circle, #8b0000, #5c0000);
+            border-radius: 50%;
+            bottom: -35px;
+            left: 50%;
+            transform: translateX(-50%);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.4);
+            z-index: 15;
+            transition: all 0.8s ease;
+        }
+
+        .wax-seal::before {
+            content: '❤';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 2em;
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        .click-hint {
+            position: absolute;
+            bottom: -60px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 0.9em;
+            animation: pulse 2s infinite;
+            transition: opacity 0.5s ease;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 0.6; }
+            50% { opacity: 1; }
+        }
+
+        .envelope-wrapper.opened .envelope-flap {
+            transform: rotateX(-180deg);
+        }
+
+        .envelope-wrapper.opened .wax-seal {
+            opacity: 0;
+            transform: translateX(-50%) scale(0);
+        }
+
+        .envelope-wrapper.opened .click-hint {
+            opacity: 0;
+        }
+
+        .letter {
+            position: absolute;
+            width: 90%;
+            left: 5%;
+            top: 50%;
+            transform: translateY(-50%);
+            background: linear-gradient(to bottom, #f4e8d0, #e8dcc4);
+            padding: 50px 40px;
+            box-shadow: 
+                0 10px 40px rgba(0, 0, 0, 0.4),
+                inset 0 0 30px rgba(139, 69, 19, 0.1);
+            opacity: 0;
+            transition: all 1.5s ease;
+            transition-delay: 0.5s;
+            z-index: 5;
+            border-radius: 3px;
+        }
+
+        .envelope-wrapper.opened .letter {
+            opacity: 1;
+            top: 120%;
+            transform: translateY(0) scale(1.1);
+        }
+
+        .letter::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                repeating-linear-gradient(
+                    0deg,
+                    transparent,
+                    transparent 29px,
+                    rgba(139, 69, 19, 0.1) 29px,
+                    rgba(139, 69, 19, 0.1) 30px
+                );
+            pointer-events: none;
+        }
+
+        .torn-edge {
+            position: absolute;
+            left: -5px;
+            right: -5px;
+            height: 15px;
+            background: #e8dcc4;
+        }
+
+        .torn-edge.top {
+            top: -8px;
+            clip-path: polygon(
+                0% 60%, 3% 20%, 7% 70%, 12% 30%, 18% 80%, 23% 40%, 
+                28% 90%, 35% 50%, 40% 20%, 45% 70%, 50% 30%, 55% 80%, 
+                62% 40%, 68% 90%, 73% 20%, 78% 60%, 83% 30%, 88% 70%, 
+                93% 40%, 97% 80%, 100% 50%, 100% 100%, 0% 100%
+            );
+        }
+
+        .torn-edge.bottom {
+            bottom: -8px;
+            clip-path: polygon(
+                0% 50%, 5% 20%, 10% 70%, 15% 40%, 20% 90%, 27% 30%, 
+                33% 80%, 38% 20%, 44% 60%, 50% 30%, 56% 70%, 62% 40%, 
+                68% 90%, 74% 20%, 79% 60%, 85% 30%, 90% 80%, 95% 40%, 
+                100% 70%, 100% 0%, 0% 0%
+            );
+        }
+
+        .stains {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            top: 0;
+            left: 0;
+            pointer-events: none;
+        }
+
+        .stain {
+            position: absolute;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(139, 69, 19, 0.15), transparent);
+        }
+
+        .stain:nth-child(1) {
+            width: 60px;
+            height: 60px;
+            top: 20%;
+            right: 10%;
+        }
+
+        .stain:nth-child(2) {
+            width: 40px;
+            height: 40px;
+            bottom: 30%;
+            left: 15%;
+        }
+
+        .stain:nth-child(3) {
+            width: 50px;
+            height: 50px;
+            top: 60%;
+            right: 20%;
+        }
+
+        .date {
+            text-align: right;
+            color: #5c4033;
+            font-size: 0.9em;
+            margin-bottom: 30px;
+            font-style: italic;
+        }
+
+        .content {
+            color: #3e2723;
+            line-height: 2;
+            font-size: 1.05em;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            letter-spacing: 0.5px;
+            position: relative;
+            z-index: 1;
+        }
+
+        @media (max-width: 600px) {
+            .envelope {
+                height: 280px;
+            }
+
+            .envelope-back::before,
+            .envelope-back::after {
+                border-left-width: 200px;
+                border-right-width: 200px;
+            }
+
+            .envelope-flap::before {
+                border-left-width: 200px;
+                border-right-width: 200px;
+            }
+
+            .letter {
+                padding: 40px 30px;
+            }
+            
+            .content {
+                font-size: 0.95em;
+                line-height: 1.8;
+            }
+
+            .envelope-wrapper.opened .letter {
+                top: 100%;
+                transform: translateY(0) scale(1.05);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="scene">
+        <div class="envelope-wrapper" onclick="openEnvelope(this)">
+            <div class="envelope">
+                <div class="envelope-back"></div>
+                <div class="envelope-flap">
+                    <div class="wax-seal"></div>
+                </div>
+                <div class="letter">
+                    <div class="torn-edge top"></div>
+                    <div class="torn-edge bottom"></div>
+                    <div class="stains">
+                        <div class="stain"></div>
+                        <div class="stain"></div>
+                        <div class="stain"></div>
+                    </div>
+                    <div class="date" id="dateDisplay"></div>
+                    <div class="content">opening the chat room and not entering username or password? being smart that way??? btw links are also tracked and they capture your IP Bye and don't ever try to contact me, have seen enough from you and your fuckin'ego
+I thought you as someone diff but all you were is this???</div>
+                </div>
+            </div>
+            <div class="click-hint">Click to open</div>
+        </div>
+    </div>
+
+    <script>
+        function openEnvelope(wrapper) {
+            if (!wrapper.classList.contains('opened')) {
+                wrapper.classList.add('opened');
+            }
+        }
+
+        function updateDate() {
+            const letterDate = new Date('2025-10-30');
+            const now = new Date();
+            const diffTime = Math.abs(now - letterDate);
+            const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+            
+            let dateText;
+            if (diffDays === 0) {
+                dateText = 'Today';
+            } else if (diffDays === 1) {
+                dateText = '1 day ago';
+            } else if (diffDays < 30) {
+                dateText = diffDays + ' days ago';
+            } else if (diffDays < 60) {
+                dateText = '1 month ago';
+            } else if (diffDays < 365) {
+                const months = Math.floor(diffDays / 30);
+                dateText = months + ' months ago';
+            } else if (diffDays < 730) {
+                dateText = '1 year ago';
+            } else {
+                const years = Math.floor(diffDays / 365);
+                dateText = years + ' years ago';
+            }
+            
+            document.getElementById('dateDisplay').textContent = dateText;
+        }
+
+        updateDate();
+        setInterval(updateDate, 60000);
+    </script>
+</body>
+</html>
